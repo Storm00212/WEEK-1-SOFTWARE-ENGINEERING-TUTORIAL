@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systems Design and Architecture Planning – DeKUT-HRIC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--paper:#f5f8f7;--card:#fff;--ink:#12302c;--muted:#52665f;--line:#d5e2de;--brand:#0d9488;--deep:#0f766e;--tint:#e3f4f1;--warn:#be123c;--warn-t:#ffe9ee;--amber:#b45309;--amber-t:#fdf1dc;--rail:210px}
+@media (prefers-color-scheme:dark){:root{--paper:#0e1f1c;--card:#142a26;--ink:#e6f2ef;--muted:#9bb5ae;--line:#254540;--brand:#2dd4bf;--deep:#5eead4;--tint:#17413b;--warn:#fda4b4;--warn-t:#3d1a24;--amber:#f5c26b;--amber-t:#3a2c12}}
+*{box-sizing:border-box}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 "Instrument Sans",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;line-height:1.1;margin:0}
+h1{font-size:clamp(2.2rem,5vw,4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;margin-bottom:.4em}
+h3{font-size:1.15rem;font-weight:700;margin-bottom:.3em}
+p{margin:.3em 0 .8em;max-width:68ch}
+b{font-weight:600}
+nav{position:fixed;inset:0 auto 0 0;width:var(--rail);padding:28px 20px;border-right:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:6px;z-index:5}
+nav .brand{font:700 1rem "Bricolage Grotesque",sans-serif;color:var(--deep);margin-bottom:18px}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem;padding:6px 10px;border-left:3px solid transparent;border-radius:0 6px 6px 0}
+nav a.on{color:var(--ink);border-left-color:var(--brand);background:var(--tint);font-weight:600}
+nav a:focus-visible,button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+nav small{margin-top:auto;color:var(--muted);font-size:.8rem}
+main{margin-left:var(--rail)}
+.slide{min-height:100vh;scroll-snap-align:start;padding:56px clamp(24px,5vw,72px);display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line)}
+.tag{display:inline-block;align-self:flex-start;font-size:.85rem;font-weight:600;color:var(--deep);background:var(--tint);padding:3px 12px;border-radius:99px;margin-bottom:14px}
+.lead{font-size:1.2rem;color:var(--muted)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card.k{border-top:4px solid var(--brand)}.card.w{border-top:4px solid var(--warn)}.card.a{border-top:4px solid var(--amber)}
+.say{display:block;margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--tint);font-size:.95rem}
+.say::before{content:"In plain words: ";font-weight:600;color:var(--deep)}
+.tw{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.95rem}
+th,td{text-align:left;vertical-align:top;padding:11px 14px;border-bottom:1px solid var(--line)}
+th{font-weight:600;background:var(--tint);color:var(--deep)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;white-space:nowrap}
+.flow{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin:14px 0}
+.node{flex:1 1 170px;background:var(--card);border:2px solid var(--brand);border-radius:12px;padding:14px 16px;font-size:.92rem}
+.node.s{border-color:var(--amber);border-style:dashed}
+.node b{display:block;font-size:1rem}
+.arr{align-self:center;font-size:1.6rem;color:var(--brand)}
+ol.steps{padding-left:0;list-style:none;counter-reset:s;display:grid;gap:10px}
+ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px 12px 56px;position:relative}
+ol.steps li::before{content:counter(s);position:absolute;left:14px;top:11px;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;display:grid;place-items:center}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.85rem;font-weight:600}
+.p-ok{background:var(--tint);color:var(--deep)}.p-no{background:var(--warn-t);color:var(--warn)}
+ul{margin:.3em 0;padding-left:1.2em}li{margin:.25em 0}
+.hint{font-size:.85rem;color:var(--muted);margin-top:14px}
+@media (max-width:860px){:root{--rail:0px}nav{position:static;width:auto;flex-direction:row;flex-wrap:wrap;border:0;border-bottom:1px solid var(--line);padding:12px}nav .brand,nav small{display:none}main{margin-left:0}.slide{min-height:auto;padding:36px 20px}}
+</style>
+</head>
+<body>
+<nav aria-label="Sections"><div class="brand">DeKUT-HRIC</div></nav>
+<main>
+
+<!-- ============ 1. WELCOME ============ -->
+<section class="slide" data-sec="1 Welcome" id="s1">
+  <span class="tag">Fundamentals of Software Engineering in Prototype Development · Subtopic 1</span>
+  <h1>Systems Design and Architecture Planning</h1>
+  <p class="lead">How to decide what to build, how the pieces fit, and what to leave out, before writing any code.</p>
+  <p><b>Paul Muyali</b> · Digital Systems and Technology, DeKUT-HRIC · 4th-year BSc Electrical and Electronics Engineering, DeKUT</p>
+  <div class="grid">
+    <div class="card k"><h3>By the end you can</h3><ul><li>Name the three layers of an app</li><li>Judge a design on scale, time and security</li><li>Plan a prototype on one page</li><li>Use AI as a tutor, not a shortcut</li></ul></div>
+    <div class="card k"><h3>Case study</h3><p>GlucoPlate, a meal planner for people with diabetes in Kenya. Every decision in Section 4 comes from its real code.</p></div>
+  </div>
+</section>
+
+<!-- ============ 2. WHAT IS SYSTEMS DESIGN ============ -->
+<section class="slide" data-sec="2 The idea" id="s2">
+  <h2>Systems design is the blueprint before the building</h2>
+  <p><b>Professional:</b> deciding the components of a system, how they communicate, and which technologies suit the requirements and limits.</p>
+  <span class="say">Drawing the plan of a house before laying bricks, so you don’t find out the kitchen has no door after the walls are up.</span>
+  <div class="grid">
+    <div class="card"><h3>1. Requirements</h3><p>Who uses it, and what must they be able to do?</p></div>
+    <div class="card"><h3>2. Constraints</h3><p>Time, money, internet quality, skills, and risks if something goes wrong.</p></div>
+    <div class="card"><h3>3. Choices</h3><p>Which pieces and tools meet the requirements inside the constraints, and what each choice costs you.</p></div>
+  </div>
+  <div class="card w" style="margin-top:16px"><h3>Why teams skip it, and pay for it</h3><p>Screens get built before anyone defines users or where data lives. Fixing that later means rebuilding.</p></div>
+</section>
+
+<!-- ============ 3. DESIGN DECISIONS (GENERAL) ============ -->
+<section class="slide" data-sec="3 Design decisions" id="s3a">
+  <span class="tag">Section 3 · Part 1 of 5</span>
+  <h2>Every app has three layers</h2>
+  <p>Think of a restaurant.</p>
+  <div class="grid">
+    <div class="card k"><h3>Frontend</h3><p><b>Professional:</b> the client-side interface that shows data and collects input in a browser or phone app.</p><span class="say">The dining room: what the customer sees and touches.</span></div>
+    <div class="card k"><h3>Backend</h3><p><b>Professional:</b> the server application that enforces rules, checks identity, and exposes data through an <b>API</b>.</p><span class="say">The kitchen. An API is the menu of requests the dining room is allowed to make.</span></div>
+    <div class="card k"><h3>Database</h3><p><b>Professional:</b> persistent, structured storage with defined relationships and constraints.</p><span class="say">The records room and pantry: everything kept safely and found quickly.</span></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="3 Design decisions" id="s3b">
+  <span class="tag">Section 3 · Part 2 of 5</span>
+  <h2>The factors an experienced engineer weighs</h2>
+  <div id="t-factors"></div>
+</section>
+
+<section class="slide" data-sec="3 Design decisions" id="s3c">
+  <span class="tag">Section 3 · Part 3 of 5</span>
+  <h2>Frontend: questions to settle</h2>
+  <div id="t-fe"></div>
+</section>
+
+<section class="slide" data-sec="3 Design decisions" id="s3d">
+  <span class="tag">Section 3 · Part 4 of 5</span>
+  <h2>Backend: questions to settle</h2>
+  <div id="t-be"></div>
+</section>
+
+<section class="slide" data-sec="3 Design decisions" id="s3e">
+  <span class="tag">Section 3 · Part 5 of 5</span>
+  <h2>Database: questions to settle</h2>
+  <div id="t-db"></div>
+  <p class="hint">Every choice trades something. Write down what you gave up, not only what you picked.</p>
+</section>
+
+<!-- ============ 4. GLUCOPLATE ============ -->
+<section class="slide" data-sec="4 GlucoPlate" id="s4a">
+  <span class="tag">Section 4 · Part 1 of 13</span>
+  <h2>GlucoPlate: sugar-safe meals on a real budget</h2>
+  <p>Builds a day of meals from 95 Kenyan dishes (ugali, sukuma wiki, githeri and more), priced in KSh, that respect each person’s carbohydrate allowance, sugar-impact limit and budget.</p>
+  <div class="grid">
+    <div class="card k"><h3>Requirements</h3><ul><li>Plan three meals a day within a budget</li><li>Different plan for different health levels</li><li>Explain each dish choice</li><li>Track weight and trends</li><li>Work on web and phone</li></ul></div>
+    <div class="card a"><h3>Constraints</h3><ul><li>Zero hosting budget (student project)</li><li>Health advice carries real risk</li><li>Users on mobile data and small screens</li><li>One developer, limited time</li></ul></div>
+  </div>
+  <p class="hint">Glycemic index (GI): a 0–100 score for how fast a food raises blood sugar. Lower is steadier.</p>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4b">
+  <span class="tag">Section 4 · Part 2 of 13</span>
+  <h2>The whole system on one page</h2>
+  <div class="flow">
+    <div class="node"><b>Web app</b>React 19 + Vite<br>Runs in the browser</div>
+    <div class="node"><b>Phone app</b>Expo / React Native<br>Android and iPhone</div>
+  </div>
+  <div class="arr" aria-hidden="true">↓ same typed requests, same login token</div>
+  <div class="flow">
+    <div class="node"><b>One backend (Express, port 4000)</b>Modules: login, dishes, plans, weight, analytics, chat, nutrients, AI</div>
+    <div class="node s"><b>Groq AI</b>Answers health questions. Key kept on the server.</div>
+    <div class="node s"><b>M-Pesa sandbox</b>Payment table ready, integration pending.</div>
+  </div>
+  <div class="arr" aria-hidden="true">↓ Prisma</div>
+  <div class="flow">
+    <div class="node"><b>PostgreSQL on Neon</b>Users, dishes, plans, weight logs, payments, AI usage</div>
+    <div class="node"><b>Shared packages</b>Types, planner rules, 95-dish catalogue, design colors, request client. Web, phone and server all import these.</div>
+  </div>
+  <p class="hint">Solid border: built. Dashed border: outside service.</p>
+</section>
+
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4api">
+  <span class="tag">Section 4 · Part 3 of 13</span>
+  <h2>How the API is organised</h2>
+  <p>The API is the list of requests the apps may make. Every address starts with <b>/api</b> and is grouped by topic, one group per backend module.</p>
+  <div id="g-api"></div>
+  <div class="grid">
+    <div class="card k"><h3>Rules every route follows</h3><ul><li>Action words mean the same everywhere: GET reads, POST creates, PATCH changes part of something, DELETE removes</li><li>Everything except sign-up, sign-in and the health check needs a login token</li><li>The user is taken from the token, never from what the request claims</li></ul></div>
+    <div class="card k"><h3>Same shape every time</h3><ul><li>Errors always look like: message, short code, request ID</li><li>Each module has three parts: routes (receive), service (decide), repository (talk to the database)</li></ul></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4c">
+  <span class="tag">Section 4 · Part 4 of 13</span>
+  <h2>Frontend decisions</h2>
+  <div id="g-fe"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4d">
+  <span class="tag">Section 4 · Part 5 of 13</span>
+  <h2>Backend decisions</h2>
+  <div id="g-be"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4e">
+  <span class="tag">Section 4 · Part 6 of 13</span>
+  <h2>Database decisions</h2>
+  <div id="g-db"></div>
+</section>
+
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4arch">
+  <span class="tag">Section 4 · Part 7 of 13</span>
+  <h2>The architecture: six decisions that shape everything</h2>
+  <p>Software architecture is the set of big decisions that are expensive to change later.</p>
+  <div id="g-arch"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4fi">
+  <span class="tag">Section 4 · Part 8 of 13</span>
+  <h2>Frontend: problems and how the design solves them</h2>
+  <div id="g-fi"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4bi">
+  <span class="tag">Section 4 · Part 9 of 13</span>
+  <h2>Backend: problems and how the design solves them</h2>
+  <div id="g-bi"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4di">
+  <span class="tag">Section 4 · Part 10 of 13</span>
+  <h2>Database: problems and how the design solves them</h2>
+  <div id="g-di"></div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4f">
+  <span class="tag">Section 4 · Part 11 of 13</span>
+  <h2>One catalogue, five levels of care</h2>
+  <p>Rules live in one shared place, so the server, web and phone all apply the same limits.</p>
+  <div id="g-ladder"></div>
+  <span class="say" style="margin-top:14px">Ugali has a GI of 73, above all five limits. When a limit is set, the planner leaves it out. Someone at “critical” gets a stricter plan and a red “talk to your clinician” banner.</span>
+  <p class="hint">The same dish list gives each of the five demo people a different plan.</p>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4g">
+  <span class="tag">Section 4 · Part 12 of 13</span>
+  <h2>How a plan is made</h2>
+  <ol class="steps">
+    <li><b>Filter.</b> Remove dishes above the person’s GI limit, and anything on their allergy or dislike list.</li>
+    <li><b>Shortlist.</b> For morning, afternoon and evening, keep the best-fitting, lower-cost dishes.</li>
+    <li><b>Score combinations.</b> Reward carbs up to the day’s allowance, protein and calories. Reward using the budget. Penalise higher average GI. Small bonus when a dish suits its meal.</li>
+    <li><b>Check and explain.</b> Show cost against budget, carbs against allowance, GI against limit, with a message if any is over.</li>
+  </ol>
+  <p class="hint">Budget example: KSh 1,400 a week becomes about KSh 200 a day.</p>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4h">
+  <span class="tag">Section 4 · Part 13 of 13</span>
+  <h2>Trade-offs accepted and what comes next</h2>
+  <div class="grid">
+    <div class="card k"><h3>Accepted on purpose</h3><ul><li>One backend instead of five services: simpler and faster, harder to split later</li><li>Free hosting: costs nothing, limited power</li><li>Rule-based planner instead of AI: predictable and explainable</li></ul></div>
+    <div class="card w"><h3>Still to do</h3><ul><li>Limit repeated login attempts (not in the code yet). The AI routes have a per-user limit, but it lives in memory and resets on restart</li><li>Restrict allowed web addresses; default is “any” until set</li><li>Free server sleeps after 15 idle minutes, so the first request is slow</li><li>Keep your own database backup copy (free Neon restores only the last 6 hours)</li><li>Finish M-Pesa payments</li></ul></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="4 GlucoPlate" id="s4i">
+  <span class="tag">Live demo</span>
+  <h2>Demo script</h2>
+  <ol class="steps">
+    <li>Sign in as <b>Njeri</b> (student, healthy). Generate a plan, open “Why this dish”.</li>
+    <li>Sign in as <b>Josephine</b> (rural farmer, critical). Same dishes, different plan, red clinician banner.</li>
+    <li>Tap swap on one dish: a cheaper, lower-GI option appears.</li>
+    <li>Ask the AI assistant a question and point out the “not a doctor” line.</li>
+    <li>Open <b>/api/health</b> to show the live database check.</li>
+  </ol>
+  <p class="hint">Demo logins are in the project README. Keep a screenshot of each step in case the internet drops.</p>
+</section>
+
+
+
+<!-- ============ 5. WORKFLOW AND TOOLS ============ -->
+<section class="slide" data-sec="5 Workflow and tools" id="s5w1">
+  <span class="tag">Section 5 · Part 1 of 3</span>
+  <h2>From idea to live app: the development process</h2>
+  <p><b>Professional:</b> the development lifecycle is a repeating loop of plan, build, test, release and monitor.</p>
+  <span class="say">You don’t finish once. You go around again every time you improve something.</span>
+  <div id="t-wf"></div>
+</section>
+
+<section class="slide" data-sec="5 Workflow and tools" id="s5w2">
+  <span class="tag">Section 5 · Part 2 of 3</span>
+  <h2>The journey of one change in GlucoPlate</h2>
+  <div class="flow">
+    <div class="node"><b>Your laptop</b>Node.js and a code editor. A practice database runs on the same machine.</div>
+    <div class="arr" aria-hidden="true">→</div>
+    <div class="node"><b>GitHub</b>Stores the code and every change.</div>
+    <div class="arr" aria-hidden="true">→ auto</div>
+    <div class="node"><b>Render</b>Rebuilds and restarts the backend, then checks /api/health.</div>
+  </div>
+  <div class="flow">
+    <div class="node"><b>Neon</b>The live PostgreSQL database. Tables are created and filled by two commands, db:push and db:seed.</div>
+    <div class="node s"><b>Vercel (option)</b>Would serve the web pages, rebuilt from GitHub in the same way.</div>
+  </div>
+  <ol class="steps">
+    <li>Change the code and try it on your laptop.</li>
+    <li>Run the checks: the build confirms the code compiles, and the test scripts confirm the rules still work.</li>
+    <li>Push to GitHub. Render sees the new code and redeploys by itself.</li>
+    <li>Database changes are applied separately, by hand, with db:push.</li>
+  </ol>
+  <p class="hint">Next step for GlucoPlate: automatic tests on every push (GitHub Actions), so a broken change is caught before it goes live.</p>
+</section>
+
+<section class="slide" data-sec="5 Workflow and tools" id="s5w3">
+  <span class="tag">Section 5 · Part 3 of 3</span>
+  <h2>The tools, what to know about their free plans, and alternatives</h2>
+  <div id="t-tools"></div>
+  <p class="hint">Free plans change often. Check each pricing page before you commit.</p>
+</section>
+
+<!-- ============ 6. AI IN SOFTWARE DEVELOPMENT ============ -->
+<section class="slide" data-sec="6 AI in practice" id="s5a">
+  <span class="tag">Section 6 · Part 1 of 6</span>
+  <h2>The role of AI in software development</h2>
+  <p><b>Professional:</b> AI coding assistants are language models that suggest, explain, review and generate code from written instructions.</p>
+  <span class="say">A very fast assistant that has read a huge amount of code. It helps most when you can tell it exactly what you need and check what it gives back.</span>
+  <div id="t-ai1"></div>
+</section>
+
+<section class="slide" data-sec="6 AI in practice" id="s5b">
+  <span class="tag">Section 6 · Part 2 of 6</span>
+  <h2>Where AI gets stuck</h2>
+  <div id="t-ai2"></div>
+</section>
+
+<section class="slide" data-sec="6 AI in practice" id="s5c">
+  <span class="tag">Section 6 · Part 3 of 6</span>
+  <h2>AI multiplies what you already know</h2>
+  <p>Calculators are only useful if you can tell that 7 × 8 is not 54. Pilots still train to fly, even with autopilot. The same applies here: you cannot judge code you cannot read, and security mistakes stay silent because the app still “works”.</p>
+  <div class="card w"><h3>Mistakes AI can make in an app like GlucoPlate, and the knowledge needed to catch them</h3></div>
+  <div id="t-ai3"></div>
+</section>
+
+<section class="slide" data-sec="6 AI in practice" id="s5d">
+  <span class="tag">Section 6 · Part 4 of 6</span>
+  <h2>Learn by hand first, then use AI as a tutor</h2>
+  <div class="grid">
+    <div class="card w"><h3>Copy and paste</h3><ul><li>Paste a one-line request and run whatever returns</li><li>Paste errors back until it stops complaining</li><li>You can’t explain why it works</li><li>Each fix may break something else</li></ul></div>
+    <div class="card k"><h3>Conversation</h3><ul><li>Say what you’re building and your limits</li><li>Ask why, then challenge: “What could go wrong? What else could I choose?”</li><li>Ask for code to be explained line by line</li><li>Check answers against your own design</li></ul></div>
+  </div>
+  <ol class="steps" style="margin-top:14px">
+    <li><b>Build a tiny app by hand.</b> A sign-in and a list, no AI. This teaches the layers and how data moves.</li>
+    <li><b>Break it on purpose</b> and read the errors until you can predict them.</li>
+    <li><b>Bring in AI as a tutor.</b> Ask it to explain, quiz you, and criticise your plan.</li>
+    <li><b>Let it draft, you review.</b> Compare every part with your design and test it.</li>
+  </ol>
+</section>
+
+<section class="slide" data-sec="6 AI in practice" id="s5e">
+  <span class="tag">Section 6 · Part 5 of 6</span>
+  <h2>Vague request, vague result</h2>
+  <div class="grid">
+    <div class="card w"><h3>Without a design</h3><p>“Build an app that does so and so. Make no mistakes.”</p><p>It doesn’t know who uses it, what limits apply, which tools you use, or what a “mistake” is. So it guesses and returns something generic.</p></div>
+    <div class="card k"><h3>With a design</h3><p>“I’m building GlucoPlate, a meal planner for people with diabetes in Kenya, used on phones with slow data. It plans three meals a day within a budget in KSh. Free hosting, one developer, two weeks. React and Vite, Express, PostgreSQL with Prisma. Users may only see and edit their own data, passwords are scrambled, no keys in the frontend. Payments are out of scope. Ask me questions first, then propose the routes and tables for me to approve.”</p></div>
+  </div>
+  <div id="t-map"></div>
+  <p class="hint">The design work from Sections 2 to 4 is what makes the request good.</p>
+</section>
+
+<section class="slide" data-sec="6 AI in practice" id="s5f">
+  <span class="tag">Section 6 · Part 6 of 6</span>
+  <h2>Before you accept AI-written code</h2>
+  <ol class="steps">
+    <li>Does it match my design, my tools and my limits?</li>
+    <li>Who is allowed to use this? Is the user taken from the login, not from the request?</li>
+    <li>Where are the secret keys?</li>
+    <li>What happens with empty, huge or harmful input?</li>
+    <li>Does it run, and do I have a test that proves it?</li>
+    <li>Can I explain each part to someone else? If not, ask the AI to teach it, or write it myself.</li>
+  </ol>
+  <p class="hint">Never paste patient, client or secret data into an AI tool.</p>
+</section>
+
+<!-- ============ 7. PROTOTYPE PLANNING ============ -->
+<section class="slide" data-sec="7 Your prototype" id="s5">
+  <h2>Planning your own prototype</h2>
+  <p><b>Professional:</b> an MVP (minimum viable product) is the smallest version that tests whether the idea works.</p>
+  <span class="say">The simplest version that answers “does anyone need this?”</span>
+  <div class="grid">
+    <div class="card k"><h3>Keep</h3><ul><li>One main task done well</li><li>One type of user</li><li>Real data for one scenario</li></ul></div>
+    <div class="card w"><h3>Leave out for now</h3><ul><li>Payments, badges, extra reports</li><li>Features for users you don’t have yet</li></ul></div>
+    <div class="card a"><h3>One-page plan</h3><ul><li>Users and their top three tasks</li><li>Layers diagram</li><li>Time, cost, risk limits</li><li>Tools you can finish with</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ 8. TAKEAWAYS ============ -->
+<section class="slide" data-sec="8 Takeaways" id="s6">
+  <h2>Four things to remember</h2>
+  <ol class="steps">
+    <li>Ask who uses it and what limits you before choosing tools.</li>
+    <li>Judge each layer on scale, time, security, and what you give up.</li>
+    <li>Build the smallest version that proves the idea.</li>
+    <li>Learn the basics by hand, then use AI as a tutor and assistant. Give it your design and check every answer.</li>
+  </ol>
+  <div class="card k" style="margin-top:16px"><h3>Questions</h3><p>What would you build first if you had two weeks?</p></div>
+  <p class="hint">Contact: add email or GitHub (Storm00212) here.</p>
+</section>
+
+</main>
+
+<script>
+/* ===== EDIT THE CONTENT HERE. Each row is [factor, column 2, column 3]. HTML is allowed. ===== */
+const T = {
+factors:{h:["Factor","In professional terms","In plain words"],r:[
+["Scalability","How well the system keeps working as users, data and requests grow.","Does it still work when 10 people become 10,000?"],
+["Time frame","The schedule and effort available, which limit scope and tool choice.","How long you have decides what you can build and which tools you can learn."],
+["Security","Protecting data and access through authentication (who are you), authorization (what may you do), encryption and input checks.","Only the right person sees the right information, and bad input can’t break things."],
+["Cost","Total cost of ownership: hosting, licences and upkeep.","What it costs to build and to keep running each month."],
+["Reliability","Staying available and recovering from failure.","How rarely it breaks, and how fast it comes back."],
+["Maintainability","How easily code can be changed, tested and extended, through modular structure and tests.","Can someone fix or add something six months from now?"],
+["Performance","Response time and resource use under load.","How fast a page appears, even on slow phone data."],
+["Privacy and safety","Legal and ethical duties for sensitive data, and the risk of harm from wrong output.","Respect personal information and don’t hurt people with bad advice."],
+["Observability","Logs and traces that show what the system is doing.","Seeing what went wrong instead of guessing."],
+["Accessibility","Design that works across abilities, devices and connections.","Anyone can use it, on any phone, the first time."]]},
+fe:{h:["Factor","Question to settle","Typical options and trade-off"],r:[
+["Scalability","Will screens stay quick as content grows?","Build from small reusable parts; load pages only when opened. Trade-off: more structure up front."],
+["Time frame","Build once for web and phone, or twice?","Shared code and shared design rules save weeks. Fully native screens look best but take longer."],
+["Security","What if someone enters harmful text or steals a login?","Use a framework that cleans input by default; keep login tokens out of reach of page scripts; never place secret keys in the frontend, because anyone can read it."],
+["Performance","Will it load on slow, expensive data?","Keep pages light, avoid large images, reload only what changed."],
+["Accessibility","Can a first-time user on a small screen finish the task?","Clear labels, large tap targets, strong contrast, dark mode."]]},
+be:{h:["Factor","Question to settle","Typical options and trade-off"],r:[
+["Scalability","What happens with 100 times the users?","Keep the server free of per-user memory so copies can be added. Trade-off: more moving parts to run."],
+["Time frame","One program or several small ones?","One program is faster to build and fix. Several (<b>microservices</b>, small independent programs) scale separately but add network and setup cost."],
+["Security","Who may do what?","Store passwords only as scrambled <b>hashes</b>; use signed login tokens with an expiry; check identity on every protected route; cap request size; restrict allowed websites."],
+["Reliability","How will you know it is down?","A health check route, logs for every request, automated tests."],
+["Outside services","What if a partner service fails or leaks?","Keep partner keys on the server; log usage; show a fallback message."]]},
+db:{h:["Factor","Question to settle","Typical options and trade-off"],r:[
+["Scalability","Will lookups stay fast as rows pile up?","Add <b>indexes</b> (a book’s index: jump to the page instead of reading every page). Trade-off: slightly slower saving."],
+["Time frame","How fast can the structure change?","An <b>ORM</b> (a translator between code and database) builds tables from one file and speeds up changes."],
+["Security","Who can read whose data?","Tag private rows with an owner; never store plain passwords; delete a user’s records when they leave."],
+["Data integrity","Will old records stay true after changes?","Keep a <b>snapshot</b> (a copy of the values at that moment) so edits don’t rewrite history; use relations so records can’t point at nothing."],
+["Reliability","Can you get data back after a mistake?","Regular backups, and a tested restore."]]},
+
+api:{h:["Group","Routes","What it does"],r:[
+["Account","POST /api/auth/register · POST /api/auth/login · GET /api/auth/me · POST /api/auth/logout","Create an account, sign in, check who is signed in, sign out"],
+["Profile and settings","GET, PATCH /api/user/profile · /api/user/budget · /api/settings · GET /api/user/portion-targets","Read or change personal details, budget and daily targets"],
+["Dishes","GET, POST /api/dishes · GET /api/dishes/stats · GET /api/dishes/:id/swap · PATCH, DELETE /api/dishes/:id","List, add, count, find a cheaper lower-GI swap, edit or remove a dish"],
+["Plans","POST /api/plans/generate · POST, GET /api/plans · PATCH /api/plans/update-item · DELETE /api/plans/:id","Preview a plan, save one, list them, mark a meal eaten or skipped, delete"],
+["Weight","GET, POST /api/weight · GET, PATCH /api/user/weight-targets","Log weight and set targets"],
+["Insights and AI","GET /api/analytics · GET /api/nutrients · GET, POST /api/chat · POST /api/llm/ask, /recommendation, /popup · GET, PATCH /api/llm/popups/stopped","Trends, nutrient facts, the assistant, tips, and which tips a user has switched off"],
+["Operations","GET /api/health · GET /","Check the server and database are alive (no login needed)"]]},
+arch:{h:["Decision","In professional terms","In plain words"],r:[
+["One app, split into modules","A <b>modular monolith</b>: one deployable program with enforced boundaries between features.","One building with separate rooms, instead of five buildings that need roads between them."],
+["Three jobs per module","<b>Separation of concerns</b>: routes handle web requests, services hold business rules, repositories are the only code that touches the database.","Reception takes the order, the chef decides, the storekeeper fetches ingredients. Nobody does another’s job, so a change in one place doesn’t break the rest."],
+["One shared contract","A <b>monorepo</b> with a shared types package defines the exact shape of every request and answer.","One written menu that the waiter, the kitchen and the customer all read, so they can’t disagree."],
+["Login without a lookup","<b>Stateless authentication</b>: the server verifies a signed, expiring token and keeps no session record.","A stamped wristband at an event. Staff check the stamp instead of searching a guest book, so any gate can serve you."],
+["Rules free of everything else","<b>Pure domain logic</b>: the planner and limits are plain functions with no database or web code.","A recipe that works in any kitchen, so web, phone and server share one recipe and tests are easy."],
+["Failures that explain themselves","A <b>uniform error format</b> and a request ID on every call.","Every problem comes with the same kind of receipt and a tracking number."]]},
+fi:{h:["Problem","How the design solves it","In plain words"],r:[
+["Web and phone drift apart","Shared design values, shared types and one request client.","One style guide and one address book used by both apps."],
+["Screen expects data the server doesn’t send","Shared types make the mismatch show up while coding.","Spell-check for data: mistakes are caught before users see them."],
+["People don’t trust or understand health numbers","“Why this dish” shows cost, GI and carbs against the person’s own limits.","Every meal comes with its reasons."],
+["App could be mistaken for medical advice","A “not medical advice” notice on every screen and a red clinician banner for high-risk and critical levels.","Clear signs that say when to see a professional."],
+["Slow, costly mobile data","A single-page app loads once, then fetches only the data it needs.","Open the shop once, then only fresh stock is delivered."],
+["Stolen login","Web: httpOnly cookie. Phone: secure storage.","The key sits in a pocket that page scripts can’t reach."],
+["Secrets visible to anyone","AI and payment keys live only on the server.","Nothing valuable is shipped to the customer’s phone."],
+["Tips become annoying","A pop-up system whose tips a user can switch off, saved through the API.","Hints you can silence."]]},
+bi:{h:["Problem","How the design solves it","In plain words"],r:[
+["Anyone could call any route","<b>requireAuth</b> on every protected route; the user ID comes from the verified token.","Staff check your wristband every time, and you can’t say you’re someone else."],
+["One user editing another’s data","Repository queries match both the item ID and the owner ID. Catalogue dishes can’t be changed by users, and a non-owner gets “not found”.","Your key opens only your drawer, and strangers aren’t even told the drawer exists."],
+["Leaked database exposes passwords","scrypt hashing with a random salt, compared in constant time.","Passwords are shredded and mixed, so a thief gets mush."],
+["Huge or malformed requests","256 KB size cap; each field checked before use.","A parcel size limit and a check of every form box."],
+["Hard to find what broke","A request ID in logs and error replies; a health route that tests the database; 30 routes audited.","A tracking number follows each problem from phone to log."],
+["Too many hops and moving parts","Five services merged into one app; a plan is two database queries.","Fewer handovers, faster answers, less to run."],
+["Rules copied in several places","Planner and limits in one shared package.","One recipe card, not three copies that drift apart."],
+["AI giving unsafe or costly answers","AI called only from the server; every answer ends “I am an AI, not a doctor”; usage logged.","The assistant is useful but never poses as a doctor, and we can see how much it’s used."],
+["Free server falls asleep","A health path lets the host check it is alive; first request after idle is slow.","Known limit: the first knock after a nap takes a while."]]},
+di:{h:["Problem","How the design solves it","In plain words"],r:[
+["Searches slow down as data grows","Indexes on user, plan and date.","A book’s index: jump to the page."],
+["Editing a dish rewrites old plans","Plan items copy name, cost, carbs, calories and GI when the plan is made.","A receipt keeps the price from the day you bought, even if the shop changes prices."],
+["Running out of database connections","Each app copy limited to 2 of the 10 the free plan allows.","Only a few phone lines per desk, so nobody gets locked out."],
+["Same 95 dishes stored for every user","Catalogue rows have no owner and everyone can see them; user-added dishes carry an owner and stay private.","One shared cookbook plus a personal notebook."],
+["Leftover records after a user leaves","Payments and badges are removed with the user, plan items with their plan, and AI logs keep only a blank owner. Plans, weight logs and dishes store just the owner’s number, so they are not cleared automatically (there is no delete-account route yet).","Closing an account clears some drawers but not all. Worth fixing before real users arrive."],
+["Different people need different limits","Each user stores a care level, carb and GI limits, and a “needs clinician review” flag.","Every person’s rules are written on their own card."],
+["Budget meaning unclear","Budget amount is the total for its period (daily, weekly, until payday); the daily allowance is worked out from it. All money in KES.","One currency and one clear meaning for “budget”."],
+["Setup differs between machines","One schema file and a seed command for dishes and personas.","Same starter kit every time."],
+["Recovering from a mistake","Not fully solved: the free Neon plan restores only the last 6 hours, so a separate backup copy is still needed.","Listed under “still to do”."]]},
+
+ai1:{h:["Advantage","What it means","In plain words"],r:[
+["Faster routine work","Generates repetitive code such as forms and data conversions quickly.","It does the copy-work so you spend time on decisions."],
+["Explains on demand","Describes unfamiliar code, errors and concepts at your level.","A tutor available at any hour."],
+["Drafts tests and documentation","Produces first versions of checks, comments and guides.","A first draft to correct, not a final copy."],
+["Second opinion on design","Lists options and trade-offs for your plan.","A colleague who asks “have you thought about…?”"],
+["Quick experiments","Lets you try an idea in an hour.","Find out cheaply whether an idea is worth building."],
+["Translation between tools","Converts code between languages and formats.","An interpreter between technologies."]]},
+ai2:{h:["Bottleneck","What happens","In plain words"],r:[
+["Confident wrong answers","Output looks right but is wrong, or uses things that don’t exist (called <b>hallucination</b>).","Sounds sure, can still be wrong."],
+["Limited context","It only knows what you tell it, so vague input gives generic output.","It can’t read your mind or your project."],
+["Security gaps","Missing owner checks, weak input checks, or secrets placed where users can see them.","Works on a good day, unsafe on a bad one."],
+["Doesn’t fit your project","Style, structure and tools may clash with what already exists.","A fine door in the wrong size."],
+["Code nobody understands","You can’t fix or extend what you can’t read.","Owning a car you can’t repair."],
+["Outdated knowledge","Libraries, prices and rules change after the AI learned them.","An old map."],
+["Privacy","Pasting client, patient or secret data into a tool shares it.","Don’t hand out the records-room key."],
+["You stay responsible","Bugs and harm belong to you, not the tool.","Your signature is on the work."]]},
+ai3:{h:["Concept to know","What AI might produce","What you need to notice"],r:[
+["Who may do what","A route that edits a dish by its number alone.","Anyone could edit anyone’s dish. The owner must be checked too."],
+["Frontend versus backend","The AI key placed in the web app’s code.","Anything in the frontend can be read by every visitor."],
+["Snapshots","Plan items that read the live dish price.","Editing a dish would change old plans."],
+["Indexes","Loading every row on every request.","Fine with 95 dishes, slow with 95,000."],
+["Trade-offs and time","Five separate services for a student project.","More cost and setup than benefit."]]},
+map:{h:["Part of a good request","Comes from","Why it matters"],r:[
+["Who uses it, on what","Requirements","Shapes screens, speed and wording"],
+["Budget, time, team size","Constraints","Keeps the answer buildable"],
+["Tools you use","Choices","Gives code that fits your project"],
+["Data and who owns it","Database design","Stops cross-user mistakes"],
+["Security rules","Security factor","Makes safe the default"],
+["What is out of scope","MVP","Prevents over-building"],
+["“Ask me first, propose, I approve”","Review","You stay in charge of the design"]]},
+
+wf:{h:["Stage","What happens","In GlucoPlate","Free alternatives"],r:[
+["1 Plan and design","Decide the users, limits and layers, and draw the boxes.","A design document inside the project (ARCHITECTURE.md)","Excalidraw, draw.io, Figma free plan, Notion"],
+["2 Build on your laptop","Write the code and run it on your own computer against a practice database.","Node.js, a code editor such as VS Code, a local test database","Python with Flask or FastAPI, Bun, Deno"],
+["3 Save and share","Record every change so mistakes can be undone and teammates can work together.","Git and GitHub","GitLab, Codeberg"],
+["4 Test","Run automatic checks before anything goes live.","Build and test scripts run with one command","Postman or Bruno to try requests by hand; GitHub Actions to run checks on every push"],
+["5 Set up the database","Create the tables and load starting data.","Neon (online PostgreSQL), Prisma, a seed command","Supabase, PostgreSQL on your laptop, SQLite for a first prototype"],
+["6 Go live","Put the backend and web pages on computers that stay switched on.","Render for the backend; Vercel is an option for the web pages","Netlify, Cloudflare Pages, GitHub Pages for static pages"],
+["7 Watch and improve","Notice problems, fix them, go around again.","Health route, request IDs, Render logs","Free uptime monitors that alert you when the app is down"]]},
+tools:{h:["Tool","In plain words, and where it enters","Free plan: what to know","Free alternatives"],r:[
+["Node.js <span class=\"pill p-ok\">used</span>","Lets JavaScript run outside a browser, so one language builds the backend too. Enters at stages 2 and 6: runs the app on your laptop and on Render.","Free and open source.","Python, Bun, Deno"],
+["GitHub <span class=\"pill p-ok\">used</span>","An online home for code that remembers every change. Enters at stage 3, and hosting services watch it to know when to redeploy.","Free for individuals. Students can apply for the GitHub Student Developer Pack for extras.","GitLab, Codeberg"],
+["Neon <span class=\"pill p-ok\">used</span>","A ready-made PostgreSQL database that you rent online. Enters at stage 5.","About 0.5 GB and 100 compute hours per project. Pauses after 5 idle minutes and wakes on the next request. Free history covers only the last 6 hours, so keep your own backup copy.","Supabase (500 MB, pauses after a week unused), PostgreSQL on your laptop, SQLite"],
+["Render <span class=\"pill p-ok\">used</span>","A rented computer that keeps the backend running when your laptop is off, and redeploys when GitHub changes. Enters at stage 6.","Sleeps after 15 idle minutes, so the first request takes about a minute. 750 free hours a month. Its own free databases expire after 30 days, which is why the database lives on Neon.","Railway (trial credit only), or run the backend from a laptop for a demo"],
+["Vercel <span class=\"pill p-no\">option</span>","Serves the web pages people open and rebuilds them when GitHub changes. Enters at stage 6 for the frontend.","The free Hobby plan is for personal, non-commercial use only, so client or paid projects need another plan or host.","Netlify, Cloudflare Pages (static files free of bandwidth charges), GitHub Pages (static only, no commercial use)"]]},
+gfe:{h:["Factor","Decision","Reason and trade-off"],r:[
+["Tools","React 19 and Vite for web; Expo (React Native) for phones.","React builds screens from reusable parts; Vite assembles them quickly; Expo gives Android and iPhone from one codebase."],
+["Scalability","Pages grouped by feature: planner, plans, dishes, analytics, health, settings.","New features are added without touching old ones."],
+["Time frame","One language (TypeScript) across web, phone and server, plus a shared types package.","One change updates all three. Cost: a one-time setup effort."],
+["Security","Login token goes with every request; web keeps it in an httpOnly cookie, phone in secure storage. The AI key never leaves the server.","A stolen page script can’t read the cookie, and nothing secret ships to users."],
+["Safety and usability","“Not medical advice” notice everywhere; red clinician banner for high-risk and critical; “Why this dish” in the person’s own numbers; one-tap swap; prices in KSh.","Health advice carries risk, and people trust what they understand."]]},
+gbe:{h:["Factor","Decision","Reason and trade-off"],r:[
+["Tools","Express on Node 22, one app, one port (4000), split into modules.","Modules keep clear boundaries; calls between them are ordinary function calls."],
+["Scalability","Began as five services behind a gateway, merged into one.","A plan now needs two database queries instead of two network trips, and the free database allows only 10 connections. The server holds no session memory, so more copies can run later."],
+["Time frame","One process to deploy, debug and pay for.","Fastest route to a working prototype. Cost: harder to split later."],
+["Security","Passwords hashed with scrypt and a random salt, compared in constant time; signed tokens (HS256, 7-day expiry); login check on every protected route; 256 KB request cap; server identity hidden.","Leaked data can’t reveal passwords, and sessions end on their own."],
+["Reliability","Health route tests the database; every request carries an ID that appears in logs and errors; 30 routes audited; planner unit tests.","One ID follows a problem from the browser to the log."],
+["Outside services","Groq AI (llama-3.1-8b-instant), usage logged, every answer ends “I am an AI, not a doctor.”","Useful help without presenting AI as a clinician."]]},
+gdb:{h:["Factor","Decision","Reason and trade-off"],r:[
+["Tools","PostgreSQL on Neon (free), accessed through Prisma. Nine tables: users, payments, dishes, meal plans, plan items, weight logs, weight targets, achievements, AI usage.","Reliable, widely used, free to start."],
+["Scalability","Indexes on user, plan and date; each app copy limited to 2 connections.","Neon Free allows 10; the limit stops the app locking itself out."],
+["Time frame","One schema file builds the database; one command loads 95 dishes and 5 personas.","Fresh, identical setup in minutes."],
+["Security","Passwords stored as hashes; user-added dishes private; the shared catalogue has no owner.","Users only see their own data."],
+["Data integrity","Plan items copy dish name, cost, carbs, calories and GI at planning time; all money in KES.","Editing a dish later doesn’t change past plans or analytics."]]},
+ladder:{h:["Care level","Daily carbs (g)","GI limit","Extra"],r:[
+["Healthy","210","55","Standard plan"],["Prediabetes","150","50","Standard plan"],["Type 2, controlled","180","55","Standard plan"],
+["Type 2, high risk","120","50","Clinician banner"],["Critical","100","45","Clinician banner"]]}
+};
+const tbl=(d)=>`<div class="tw"><table><thead><tr>${d.h.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${d.r.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+[["t-factors","factors"],["t-fe","fe"],["t-be","be"],["t-db","db"],["g-fe","gfe"],["g-be","gbe"],["g-db","gdb"],["g-ladder","ladder"],["g-api","api"],["g-arch","arch"],["g-fi","fi"],["g-bi","bi"],["g-di","di"],["t-ai1","ai1"],["t-ai2","ai2"],["t-ai3","ai3"],["t-map","map"],["t-wf","wf"],["t-tools","tools"]].forEach(([id,k])=>{document.getElementById(id).innerHTML=tbl(T[k])});
+
+/* ===== Side navigation and keyboard control ===== */
+const slides=[...document.querySelectorAll(".slide")],nav=document.querySelector("nav");
+const names=[...new Set(slides.map(s=>s.dataset.sec))];
+names.forEach(n=>{const a=document.createElement("a");a.href="#"+slides.find(s=>s.dataset.sec===n).id;a.textContent=n;a.dataset.n=n;nav.appendChild(a)});
+nav.insertAdjacentHTML("beforeend","<small>Arrow keys move between slides</small>");
+const links=[...nav.querySelectorAll("a")];
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle("on",l.dataset.n===e.target.dataset.sec))}),{threshold:.5});
+slides.forEach(s=>io.observe(s));
+const cur=()=>{const m=innerHeight/2;return slides.findIndex(s=>{const r=s.getBoundingClientRect();return r.top<=m&&r.bottom>m})};
+addEventListener("keydown",e=>{
+  if(!["ArrowDown","ArrowRight","PageDown","ArrowUp","ArrowLeft","PageUp"].includes(e.key))return;
+  e.preventDefault();const d=/Down|Right/.test(e.key)?1:-1;
+  const i=Math.max(0,Math.min(slides.length-1,cur()+d));slides[i].scrollIntoView();
+});
+</script>
+</body>
+</html>
